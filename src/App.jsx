@@ -1,236 +1,106 @@
-
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'my-todo-tasks'
 
 function App() {
   const [tasks, setTasks] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-    } catch {
-      return []
-    }
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
   })
-
   const [input, setInput] = useState('')
+  const [inputError, setInputError] = useState('')
   const [filter, setFilter] = useState('all')
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
-  }, [tasks])
+  useEffect(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)), [tasks])
 
   function addTask(e) {
     e.preventDefault()
-
     const title = input.trim()
-    if (!title) return
-
-    setTasks((previous) => [
-      {
-        id: crypto.randomUUID(),
-        title,
-        completed: false,
-        createdAt: new Date().toISOString(),
-      },
-      ...previous,
-    ])
-
+    if (!title) { setInputError('Please enter a task before adding it.'); return }
+    setTasks((previous) => [{ id: crypto.randomUUID(), title, completed: false }, ...previous])
     setInput('')
+    setInputError('')
   }
 
   function toggleTask(id) {
-    setTasks((previous) =>
-      previous.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
-      )
-    )
+    setTasks((previous) => previous.map((task) => task.id === id ? { ...task, completed: !task.completed } : task))
   }
 
-  function deleteTask(id) {
-    setTasks((previous) =>
-      previous.filter((task) => task.id !== id)
-    )
-  }
+  function deleteTask(id) { setTasks((previous) => previous.filter((task) => task.id !== id)) }
 
-  function clearCompleted() {
-    setTasks((previous) =>
-      previous.filter((task) => !task.completed)
-    )
-  }
-
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === 'active') return !task.completed
-    if (filter === 'completed') return task.completed
-    return true
-  })
-
-  const completedCount = tasks.filter(
-    (task) => task.completed
-  ).length
-
+  const completedCount = tasks.filter((task) => task.completed).length
   const activeCount = tasks.length - completedCount
+  const filteredTasks = tasks.filter((task) => filter === 'active' ? !task.completed : filter === 'completed' ? task.completed : true)
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-800 sm:py-16">
-      <div className="mx-auto max-w-2xl">
-        <header className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-600 text-3xl text-white shadow-lg shadow-indigo-200">
-            ✓
+    <div className="site-shell">
+      <header className="topbar">
+        <nav className="nav-wrap" aria-label="Main navigation">
+          <a className="brand" href="#home" aria-label="Daymark home"><span className="brand-mark">d.</span><span>daymark</span></a>
+          <div className="nav-links">
+            <a href="#home">Home</a><a href="#planner">Planner</a><a href="#features">Features</a><a href="#about">About</a>
           </div>
+          <a className="nav-cta" href="#planner">Get organized <span aria-hidden="true">↗</span></a>
+        </nav>
+      </header>
 
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
-            My Tasks
-          </h1>
-
-          <p className="mt-3 text-slate-500">
-            Organize your day, one task at a time.
-          </p>
-
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Works offline
+      <main>
+        <section className="hero-section" id="home">
+          <div className="hero-copy">
+            <div className="eyebrow"><span className="eyebrow-dot" /> A little more focused, every day</div>
+            <h1>Make room for<br /><span>what matters.</span></h1>
+            <p className="hero-description">A calmer way to plan your day. Capture your to-dos, find your focus, and celebrate the little wins along the way.</p>
+            <div className="hero-actions"><a className="button button-primary" href="#planner">Start planning <span aria-hidden="true">→</span></a><a className="text-link" href="#features">Explore the features <span aria-hidden="true">↓</span></a></div>
+            <div className="hero-note"><span className="note-check">✓</span> Free to use <i /> Works offline <i /> Your tasks stay private</div>
           </div>
-        </header>
-
-        <section className="rounded-3xl bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-8">
-          <form onSubmit={addTask} className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="What do you need to do?"
-              aria-label="New task"
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-            />
-
-            <button
-              type="submit"
-              className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-700 active:scale-95"
-            >
-              Add
-            </button>
-          </form>
-
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <Stat label="Total" value={tasks.length} />
-            <Stat label="Active" value={activeCount} />
-            <Stat label="Completed" value={completedCount} />
-          </div>
-
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-              {['all', 'active', 'completed'].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => setFilter(item)}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium capitalize transition ${filter === item
-                      ? 'bg-white text-indigo-700 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                >
-                  {item}
-                </button>
-              ))}
+          <div className="hero-art" aria-label="Illustration of a daily planner">
+            <div className="art-sun" />
+            <div className="art-card">
+              <div className="art-card-top"><span>YOUR DAY, IN VIEW</span><span className="art-date">MON · 09</span></div>
+              <div className="art-heading">A fresh start<span className="art-sparkle">✳</span></div>
+              <div className="art-progress"><span /><span /><span /></div>
+              <div className="art-task"><b className="art-tick">✓</b><span>Plan the week ahead</span><small>9:00</small></div>
+              <div className="art-task"><b className="art-tick empty" /><span>Make time for a walk</span><small>11:30</small></div>
+              <div className="art-task"><b className="art-tick empty" /><span>Finish the important thing</span><small>2:00</small></div>
+              <div className="art-footer"><span>YOU'VE GOT THIS</span><span>✦</span></div>
             </div>
-
-            {completedCount > 0 && (
-              <button
-                type="button"
-                onClick={clearCompleted}
-                className="text-sm font-medium text-rose-600 hover:text-rose-700"
-              >
-                Clear completed
-              </button>
-            )}
+            <div className="art-sticker sticker-one">one thing<br />at a time</div><div className="art-sticker sticker-two">✦</div>
+            <div className="art-plant"><span /><span /><span /><span /><b /></div>
           </div>
-
-          <div className="mt-5 space-y-3">
-            {filteredTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 p-4 transition hover:border-indigo-100 hover:bg-slate-50"
-              >
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleTask(task.id)}
-                  aria-label={`Mark ${task.title} as ${task.completed ? 'active' : 'completed'
-                    }`}
-                  className="h-5 w-5 shrink-0 cursor-pointer accent-indigo-600"
-                />
-
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`break-words font-medium ${task.completed
-                        ? 'text-slate-400 line-through'
-                        : 'text-slate-700'
-                      }`}
-                  >
-                    {task.title}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-400">
-                    {task.completed ? 'Completed' : 'In progress'}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => deleteTask(task.id)}
-                  aria-label={`Delete ${task.title}`}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-
-            {filteredTasks.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-12 text-center">
-                <div className="text-4xl">
-                  {filter === 'completed' ? '🎉' : '📝'}
-                </div>
-
-                <p className="mt-3 font-semibold text-slate-700">
-                  {tasks.length === 0
-                    ? 'No tasks yet'
-                    : 'Nothing to show'}
-                </p>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  {tasks.length === 0
-                    ? 'Add your first task above to get started.'
-                    : `You have no ${filter} tasks right now.`}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <footer className="mt-6 border-t border-slate-100 pt-4 text-center text-sm text-slate-400">
-            {activeCount === 0 && tasks.length > 0
-              ? 'All tasks completed. Great work!'
-              : `${activeCount} task${activeCount === 1 ? '' : 's'} left to complete`}
-          </footer>
         </section>
 
-        <p className="mt-5 text-center text-sm text-slate-400">
-          Your tasks are saved on this device.
-        </p>
-      </div>
-    </main>
-  )
-}
+        <section className="planner-section" id="planner">
+          <div className="section-heading"><div><div className="eyebrow">YOUR PERSONAL PLANNER</div><h2>Start with one thing.</h2></div><p>Small steps add up. Write down what’s on your mind and take it from there.</p></div>
+          <div className="planner-layout">
+            <div className="todo-panel">
+              <div className="todo-panel-heading"><div><span className="panel-icon">✳</span><div><h3>Today’s list</h3><p>{activeCount === 0 && tasks.length ? 'Everything is checked off. Nice work!' : `${activeCount} thing${activeCount === 1 ? '' : 's'} left to do`}</p></div></div><span className="today-label">TODAY</span></div>
+              <form onSubmit={addTask} className="task-form">
+                <input type="text" value={input} onChange={(e) => { setInput(e.target.value); if (e.target.value.trim()) setInputError('') }} placeholder="Add something to your day..." aria-label="New task" aria-invalid={Boolean(inputError)} aria-describedby={inputError ? 'task-input-error' : undefined} />
+                <button type="submit" aria-label="Add task">＋</button>
+              </form>
+              {inputError && <p id="task-input-error" role="alert" className="input-error">{inputError}</p>}
+              <div className="task-toolbar"><div className="task-filters">{['all', 'active', 'completed'].map((item) => <button key={item} type="button" onClick={() => setFilter(item)} className={filter === item ? 'selected' : ''}>{item}</button>)}</div><span>{tasks.length} total</span></div>
+              <div className="task-list">
+                {filteredTasks.map((task) => <div className="task-row" key={task.id}><input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} aria-label={`Mark ${task.title} as ${task.completed ? 'active' : 'completed'}`} /><span className={task.completed ? 'task-title completed' : 'task-title'}>{task.title}</span><button className="delete-task" type="button" onClick={() => deleteTask(task.id)} aria-label={`Delete ${task.title}`}>×</button></div>)}
+                {filteredTasks.length === 0 && <div className="empty-state"><span>{filter === 'completed' ? '✦' : '☀'}</span><b>{tasks.length === 0 ? 'A clean slate.' : 'Nothing here just yet.'}</b><p>{tasks.length === 0 ? 'Add your first task above and make today yours.' : `Your ${filter} list will show up here.`}</p></div>}
+              </div>
+              <div className="task-summary"><span><b>{completedCount}</b> completed</span><span><b>{activeCount}</b> still to go</span></div>
+            </div>
+            <aside className="planner-aside"><div className="quote-mark">“</div><blockquote>You don’t have to do it all. You just have to begin.</blockquote><div className="quote-rule" /><p>A gentle reminder from daymark</p><div className="aside-scribble">✳</div></aside>
+          </div>
+        </section>
 
-function Stat({ label, value }) {
-  return (
-    <div className="rounded-xl bg-slate-50 px-3 py-4 text-center">
-      <p className="text-2xl font-bold text-indigo-600">{value}</p>
-      <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">
-        {label}
-      </p>
+        <section className="features-section" id="features">
+          <div className="features-head"><div className="eyebrow">A TOOL THAT GETS OUT OF YOUR WAY</div><h2>Simple by design.<br /><span>Helpful by nature.</span></h2></div>
+          <div className="feature-grid">
+            <article className="feature-card"><span className="feature-icon peach">↗</span><h3>Find your focus</h3><p>Keep your next steps in one clear, friendly place. Less mental clutter, more room to think.</p></article>
+            <article className="feature-card"><span className="feature-icon sage">◷</span><h3>Keep your rhythm</h3><p>Make a little progress whenever you can. Your list is ready when you are, at your own pace.</p></article>
+            <article className="feature-card"><span className="feature-icon lavender">☁</span><h3>Take it anywhere</h3><p>Your tasks are saved on this device and your planner works offline, wherever the day takes you.</p></article>
+          </div>
+        </section>
+
+        <section className="closing-section" id="about"><div className="closing-mark">d.</div><div><div className="eyebrow">A NOTE FROM DAYMARK</div><h2>Progress can be peaceful.</h2><p>Daymark is a small, simple space to help you move through your day with a little more clarity. No pressure to do it all. Just a place to begin.</p></div><a className="button button-light" href="#planner">Make a plan <span aria-hidden="true">→</span></a></section>
+      </main>
+      <footer className="site-footer"><a className="brand footer-brand" href="#home"><span className="brand-mark">d.</span><span>daymark</span></a><span>A softer way to get things done.</span><a href="#home">Back to top ↑</a></footer>
     </div>
   )
 }
